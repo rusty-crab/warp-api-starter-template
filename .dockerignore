@@ -1,0 +1,9 @@
+.git
+.github
+.gitignore
+.vscode
+target/
+*.swp
+# data
+data/
+.env

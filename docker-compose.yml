@@ -1,0 +1,26 @@
+version: "3.1"
+
+services: 
+  db:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    volumes:
+      - ${PWD}/data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: mydb
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: mydb
+    restart: always
+
+  cache:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    restart: always
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
