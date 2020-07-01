@@ -21,7 +21,7 @@ pub struct Account {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone, FromRow, Debug)]
+#[derive(Clone, Serialize, Deserialize, FromRow, Debug)]
 pub struct Session {
     pub key: String,
     pub csrf: String,

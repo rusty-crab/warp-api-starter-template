@@ -1,9 +1,6 @@
-use crate::auth;
-use crate::model;
-use crate::Environment;
+use crate::{auth, cache, model, Environment};
 use chrono::Utc;
 use redis::aio::MultiplexedConnection;
-use redis::AsyncCommands;
 use serde::{de::DeserializeOwned, Serialize};
 use sqlx::query_as_unchecked;
 use std::any::type_name;
@@ -17,8 +14,17 @@ pub struct Session {
 }
 
 impl Session {
-    pub async fn new(env: Environment, auth: auth::Session) -> anyhow::Result<Self> {
-        let redis = env.redis().await?;
+    pub async fn new(env: Environment, jwt: &str, csrf: &str) -> anyhow::Result<Self> {
+        let session_key = auth::claims(&env, &jwt, &csrf)?.session();
+        let mut redis = env.redis().await?;
+        // Fetch session from cache if exists otherwise create
+        let auth = cache::get_or_create(&mut redis, session_key, || async {
+            let auth = auth::session(env.clone(), &jwt, &csrf).await?;
+            let expiry = auth.expiry.signed_duration_since(Utc::now());
+            let expiry: usize = expiry.num_seconds().try_into()?;
+            Ok::<_, anyhow::Error>((auth, expiry))
+        })
+        .await?;
         Ok(Self { env, auth, redis })
     }
 
@@ -42,23 +48,22 @@ impl Session {
     pub async fn _set<T: Serialize>(&mut self, value: &T) -> anyhow::Result<()> {
         let expiry = self.auth.expiry.signed_duration_since(Utc::now());
 
-        self.redis
-            .set_ex(
-                format!("session:{}:{}", self.auth.key, type_name::<T>()),
-                bincode::serialize(value)?,
-                expiry.num_seconds().try_into()?,
-            )
-            .await?;
+        cache::set_ex(
+            &mut self.redis,
+            format!("session:{}:{}", self.auth.key, type_name::<T>()),
+            value,
+            expiry.num_seconds().try_into()?,
+        )
+        .await?;
 
         Ok(())
     }
 
     pub async fn _get<T: DeserializeOwned>(&mut self) -> anyhow::Result<T> {
-        let bytes: Vec<u8> = self
-            .redis
-            .get(format!("session:{}:{}", self.auth.key, type_name::<T>()))
-            .await?;
-
-        Ok(bincode::deserialize(&bytes)?)
+        cache::get(
+            &mut self.redis,
+            format!("session:{}:{}", self.auth.key, type_name::<T>()),
+        )
+        .await
     }
 }

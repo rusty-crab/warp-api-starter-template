@@ -1,6 +1,7 @@
 use crate::{auth, environment::Environment, model, session::Session};
 use futures::channel::mpsc::channel;
 use juniper::FieldResult;
+use shrinkwraprs::Shrinkwrap;
 use sqlx::{query_as_unchecked, query_unchecked};
 use uuid::Uuid;
 
@@ -9,29 +10,21 @@ pub fn schema() -> Schema {
     Schema::new(Query, Mutation, Subscription)
 }
 
-#[derive(Clone)]
+#[derive(Shrinkwrap, Clone)]
 pub struct Context {
     session: Option<Session>,
+    #[shrinkwrap(main_field)]
     env: Environment,
 }
 
 impl Context {
     pub async fn new(env: Environment, auth: Option<(String, String)>) -> anyhow::Result<Self> {
         if let Some((jwt, csrf)) = auth {
-            let session = auth::session(env.clone(), &jwt, &csrf).await?;
-            let session = Session::new(env.clone(), session).await.ok();
+            let session = Session::new(env.clone(), &jwt, &csrf).await.ok();
             Ok(Self { env, session })
         } else {
             Ok(Self { env, session: None })
         }
-    }
-
-    fn database(&self) -> &sqlx::postgres::PgPool {
-        self.env.database()
-    }
-
-    fn argon(&self) -> &crate::argon::Argon {
-        self.env.argon()
     }
 
     fn session(&self) -> Option<&Session> {

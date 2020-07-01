@@ -12,7 +12,7 @@ use std::net::SocketAddr;
 use thiserror::Error;
 use warp::{self, http, Reply};
 
-#[derive(Shrinkwrap, Clone, Debug)]
+#[derive(Shrinkwrap, Clone, Serialize, Deserialize, Debug)]
 pub struct Session(model::Session);
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,6 +26,12 @@ pub struct Request {
 pub struct Claims {
     session: String,
     csrf: String,
+}
+
+impl Claims {
+    pub fn session(&self) -> String {
+        self.session.to_owned()
+    }
 }
 
 #[allow(dead_code)]
@@ -123,12 +129,18 @@ async fn request(
     Ok((env.jwt().encode(claims, expiry)?, csrf))
 }
 
-pub async fn session(env: Environment, jwt: &str, csrf: &str) -> anyhow::Result<Session> {
+pub fn claims(env: &Environment, jwt: &str, csrf: &str) -> anyhow::Result<Claims> {
     let claims: Claims = env.jwt().decode(jwt)?;
 
     if claims.csrf != csrf {
         return Err(AuthError::InvalidCredentials.into());
     }
+
+    Ok(claims)
+}
+
+pub async fn session(env: Environment, jwt: &str, csrf: &str) -> anyhow::Result<Session> {
+    let claims = claims(&env, &jwt, &csrf)?;
 
     let session = query_as_unchecked!(
         model::Session,

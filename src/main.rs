@@ -1,5 +1,6 @@
 mod argon;
 mod auth;
+mod cache;
 mod environment;
 mod graphql;
 mod jwt;
