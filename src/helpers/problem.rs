@@ -26,6 +26,17 @@ pub fn pack(err: anyhow::Error) -> Problem {
         }
     }
 
+    if let Some(err) = err.downcast_ref::<biscuit::errors::Error>() {
+        match err {
+            biscuit::errors::Error::ValidationError(e) => {
+                return Problem::new("Invalid JWT token.")
+                    .set_status(http::StatusCode::BAD_REQUEST)
+                    .set_detail(format!("The passed JWT token were invalid. {}", e))
+            },
+            _ => (),
+        }
+    }
+
     tracing::error!("internal error occurred: {:#}", err);
     Problem::with_title_and_type_from_status(http::StatusCode::INTERNAL_SERVER_ERROR)
 }
