@@ -22,7 +22,7 @@ impl Session {
             let auth = auth::session(env.clone(), &jwt, &csrf).await?;
             let expiry = auth.expiry.signed_duration_since(Utc::now());
             let expiry: usize = expiry.num_seconds().try_into()?;
-            Ok::<_, anyhow::Error>((auth, expiry))
+            Ok((auth, expiry))
         })
         .await?;
         Ok(Self { env, auth, redis })

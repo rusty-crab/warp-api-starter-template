@@ -14,15 +14,7 @@ impl Jwt {
     }
 
     pub fn encode(&self, claims: auth::Claims, _expiry: DateTimeUtc) -> anyhow::Result<String> {
-        let registered = biscuit::RegisteredClaims {
-            issuer: Some(std::str::FromStr::from_str(
-                "https://www.example.com/change/me",
-            )?),
-            subject: Some(std::str::FromStr::from_str(
-                "JSON Web Token Issued for Warp API Starter Template",
-            )?),
-            ..Default::default()
-        };
+        let registered = biscuit::RegisteredClaims::default();
         let private = claims;
         let claims = biscuit::ClaimsSet::<auth::Claims> {
             registered,

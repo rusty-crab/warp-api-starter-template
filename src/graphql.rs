@@ -20,7 +20,7 @@ pub struct Context {
 impl Context {
     pub async fn new(env: Environment, auth: Option<(String, String)>) -> anyhow::Result<Self> {
         if let Some((jwt, csrf)) = auth {
-            let session = Session::new(env.clone(), &jwt, &csrf).await.ok();
+            let session = Some(Session::new(env.clone(), &jwt, &csrf).await?);
             Ok(Self { env, session })
         } else {
             Ok(Self { env, session: None })

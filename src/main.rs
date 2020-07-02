@@ -58,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
         .allow_header("authorization")
         .allow_any_origin()
         .build();
-    let log = warp::log("brrrrr::request");
+    let log = warp::log("api::request");
     let auth = warp::post()
         .and(warp::path("auth"))
         .and(env.clone())
@@ -68,9 +68,11 @@ async fn main() -> anyhow::Result<()> {
             auth::filter(env, req, addr).await.map_err(problem::build)
         });
     let graphql = {
-        use futures::{future, FutureExt as _};
-        use juniper_subscriptions::*;
-        use juniper_warp::{subscriptions::*, *};
+        use futures::FutureExt as _;
+        use juniper_subscriptions::Coordinator;
+        use juniper_warp::{
+            make_graphql_filter, playground_filter, subscriptions::graphql_subscriptions,
+        };
         use serde::Deserialize;
         use std::sync::Arc;
         use warp::Filter;
@@ -84,16 +86,16 @@ async fn main() -> anyhow::Result<()> {
             .or(warp::cookie::optional("jwt"))
             .unify()
             .and(warp::query())
-            .and_then(|jwt: Option<String>, query: Query| {
+            .and_then(|jwt: Option<String>, query: Query| async {
                 if jwt.is_none() && query.csrf.is_none() {
-                    return future::ok(None);
+                    return Ok(None);
                 }
 
                 if jwt.is_none() || query.csrf.is_none() {
-                    return future::err(problem::build(auth::AuthError::InvalidCredentials));
+                    return Err(problem::build(auth::AuthError::InvalidCredentials));
                 }
 
-                future::ok(Some((jwt.unwrap(), query.csrf.unwrap())))
+                Ok(Some((jwt.unwrap(), query.csrf.unwrap())))
             });
 
         let context = warp::any()
