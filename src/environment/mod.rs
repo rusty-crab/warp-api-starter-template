@@ -1,4 +1,9 @@
-use crate::{argon::Argon, jwt::Jwt, Args};
+mod argon;
+mod jwt;
+
+use crate::Args;
+use argon::Argon;
+use jwt::Jwt;
 use sqlx::postgres::PgPool;
 
 #[derive(Clone, Debug)]

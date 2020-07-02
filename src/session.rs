@@ -1,4 +1,4 @@
-use crate::{auth, cache, model, Environment};
+use crate::{auth, helpers::cache, model, Environment};
 use chrono::Utc;
 use redis::aio::MultiplexedConnection;
 use serde::{de::DeserializeOwned, Serialize};

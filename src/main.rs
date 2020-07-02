@@ -1,17 +1,15 @@
-mod argon;
 mod auth;
-mod cache;
 mod environment;
 mod graphql;
-mod jwt;
 mod model;
-mod problem;
 mod session;
+mod helpers;
 
 use clap::Clap;
 use environment::Environment;
 use std::net::SocketAddr;
 use warp::Filter;
+use helpers::problem;
 
 #[derive(Clap, Debug)]
 #[clap(
