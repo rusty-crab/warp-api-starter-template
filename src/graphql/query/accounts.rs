@@ -4,17 +4,12 @@ use crate::{
     model,
 };
 use juniper::FieldResult;
-use sqlx::query_as_unchecked;
 
 #[juniper::graphql_object(Context = Context)]
 impl Query {
     pub async fn accounts(ctx: &Context) -> FieldResult<Vec<model::Account>> {
         if ctx.is_authenticated() {
-            Ok(
-                query_as_unchecked!(model::Account, "SELECT * FROM accounts")
-                    .fetch_all(ctx.database())
-                    .await?,
-            )
+            Ok(crate::sql::account::get_all_accounts(ctx.database()).await?)
         } else {
             Err(auth::AuthError::InvalidCredentials.into())
         }

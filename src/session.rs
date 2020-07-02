@@ -2,7 +2,6 @@ use crate::{auth, helpers::cache, model, Environment};
 use chrono::Utc;
 use redis::aio::MultiplexedConnection;
 use serde::{de::DeserializeOwned, Serialize};
-use sqlx::query_as_unchecked;
 use std::any::type_name;
 use std::convert::TryInto;
 
@@ -29,20 +28,7 @@ impl Session {
     }
 
     pub async fn account(&self) -> anyhow::Result<model::Account> {
-        Ok(query_as_unchecked!(
-            model::Account,
-            r#"
-        SELECT accounts.*
-          FROM sessions
-          INNER JOIN accounts
-            ON sessions.account = accounts.id
-          WHERE
-            sessions.key = $1
-      "#,
-            self.auth.key
-        )
-        .fetch_one(self.env.database())
-        .await?)
+        crate::sql::account::get_account_by_session_key(self.env.database(), &self.auth.key).await
     }
 
     pub async fn _set<T: Serialize>(&mut self, value: &T) -> anyhow::Result<()> {

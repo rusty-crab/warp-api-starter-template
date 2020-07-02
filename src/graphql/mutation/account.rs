@@ -1,7 +1,6 @@
 use crate::graphql::{mutation::Mutation, Context};
 use crate::{auth, model};
 use juniper::FieldResult;
-use sqlx::{query_as_unchecked, query_unchecked};
 use uuid::Uuid;
 
 #[juniper::graphql_object(Context = Context)]
@@ -21,7 +20,7 @@ pub struct AccountMutation;
 
 #[derive(juniper::GraphQLInputObject, Debug)]
 pub struct AccountInput {
-    email: Option<String>,
+    email: String,
 }
 
 #[juniper::graphql_object(Context = Context)]
@@ -33,28 +32,9 @@ impl AccountMutation {
         let password = argon.hasher().with_password(password).hash()?;
         let id = Uuid::new_v4();
 
-        query_unchecked!(
-            r#"
-            INSERT INTO accounts (id, email, password) 
-                VALUES ($1, $2, $3)
-            "#,
-            id,
-            email,
-            password
-        )
-        .execute(ctx.database())
-        .await?;
+        crate::sql::account::create_account(ctx.database(), id, &email, &password).await?;
 
-        Ok(query_as_unchecked!(
-            model::Account,
-            r#"
-            SELECT * FROM accounts 
-            WHERE email = $1
-        "#,
-            email
-        )
-        .fetch_one(ctx.database())
-        .await?)
+        Ok(crate::sql::account::get_account(ctx.database(), &email).await?)
     }
 
     async fn update(ctx: &Context, id: Uuid, input: AccountInput) -> FieldResult<model::Account> {
@@ -67,18 +47,6 @@ impl AccountMutation {
             return Err(auth::AuthError::InvalidCredentials.into());
         }
 
-        Ok(query_as_unchecked!(
-            model::Account,
-            r#"
-    UPDATE accounts
-      SET email = COALESCE($2, email)
-      WHERE id = $1
-      RETURNING *
-  "#,
-            id,
-            input.email
-        )
-        .fetch_one(ctx.database())
-        .await?)
+        Ok(crate::sql::account::update_email(ctx.database(), id, &input.email).await?)
     }
 }

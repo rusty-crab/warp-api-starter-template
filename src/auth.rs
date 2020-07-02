@@ -7,7 +7,6 @@ use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shrinkwraprs::Shrinkwrap;
-use sqlx::{query, query_as_unchecked, query_unchecked, types::json::Json};
 use std::net::SocketAddr;
 use thiserror::Error;
 use warp::{self, http, Reply};
@@ -69,17 +68,9 @@ async fn request(
     req: Request,
     address: Option<SocketAddr>,
 ) -> anyhow::Result<(String, String)> {
-    let account = query!(
-        r#"
-    SELECT id, password
-      FROM accounts
-      WHERE email = $1
-    "#,
-        &req.email
-    )
-    .fetch_optional(env.database())
-    .await?
-    .ok_or(AuthError::InvalidCredentials)?;
+    let account = crate::sql::account::get_account_id_password_by_email(env.database(), &req.email)
+        .await?
+        .ok_or(AuthError::InvalidCredentials)?;
 
     let is_valid = env
         .argon()
@@ -112,18 +103,14 @@ async fn request(
     let csrf = claims.csrf.clone();
     let expiry = Utc::now() + Duration::seconds(env.session_lifetime(req.lifetime));
 
-    query_unchecked!(
-        r#"
-    INSERT INTO sessions (key, csrf, account, identity, expiry)
-      VALUES ($1, $2, $3, $4, $5)
-  "#,
+    crate::sql::account::create_session(
+        env.database(),
         &claims.session,
         &claims.csrf,
         account.id,
-        Json(identity),
-        expiry
+        identity,
+        expiry,
     )
-    .execute(env.database())
     .await?;
 
     Ok((env.jwt().encode(claims, expiry)?, csrf))
@@ -142,18 +129,9 @@ pub fn claims(env: &Environment, jwt: &str, csrf: &str) -> anyhow::Result<Claims
 pub async fn session(env: Environment, jwt: &str, csrf: &str) -> anyhow::Result<Session> {
     let claims = claims(&env, &jwt, &csrf)?;
 
-    let session = query_as_unchecked!(
-        model::Session,
-        r#"
-      SELECT *
-        FROM sessions
-        WHERE key = $1 AND csrf = $2 AND expiry > NOW() AND NOT invalidated
-    "#,
-        claims.session,
-        &csrf
-    )
-    .fetch_optional(env.database())
-    .await?;
+    let session =
+        crate::sql::account::get_csrf_validated_session(env.database(), &claims.session, &csrf)
+            .await?;
 
     Ok(Session(session.ok_or(AuthError::InvalidCredentials)?))
 }

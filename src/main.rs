@@ -1,15 +1,16 @@
 mod auth;
 mod environment;
 mod graphql;
+mod helpers;
 mod model;
 mod session;
-mod helpers;
+mod sql;
 
 use clap::Clap;
 use environment::Environment;
+use helpers::problem;
 use std::net::SocketAddr;
 use warp::Filter;
-use helpers::problem;
 
 #[derive(Clap, Debug)]
 #[clap(
