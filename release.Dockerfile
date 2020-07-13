@@ -1,5 +1,5 @@
 # Stage 1 - build 
-FROM rust:1.43-slim as build-deps
+FROM rust:1.44-slim as build-deps
 
 WORKDIR /usr/src/web-app
 

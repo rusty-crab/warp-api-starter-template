@@ -1,6 +1,22 @@
 version: "3.1"
 
-services: 
+services:
+  api:
+    build:
+      context: .
+      dockerfile: debug.Dockerfile
+    volumes:
+      - ${PWD}:/src-root
+    environment:
+      RUST_LOG: info
+      DATABASE_URL: postgres://mydb:changeme@db:5432/mydb
+      REDIS_URL: redis://cache:6379/
+      JWT_SECRET: ITS A SECRET
+      ARGON_SECRET: ITS ANOTHER SECRET
+    ports:
+      - 3535:3535
+    restart: always
+  
   db:
     image: postgres:latest
     ports:

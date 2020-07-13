@@ -18,3 +18,7 @@ Cargo.lock
 data/
 
 .env
+
+# vim .swp files
+*.swp
+

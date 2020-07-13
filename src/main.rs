@@ -11,6 +11,9 @@ use environment::Environment;
 use helpers::problem;
 use std::net::SocketAddr;
 use warp::Filter;
+use hyper::server::Server;
+use listenfd::ListenFd;
+use std::convert::Infallible;
 
 #[derive(Clap, Debug)]
 #[clap(
@@ -58,6 +61,9 @@ async fn main() -> anyhow::Result<()> {
         .allow_any_origin()
         .build();
     let log = warp::log("api::request");
+    let status = warp::get()
+        .and(warp::path("status"))
+        .map(|| format!("OK"));
     let auth = warp::post()
         .and(warp::path("auth"))
         .and(env.clone())
@@ -138,14 +144,29 @@ async fn main() -> anyhow::Result<()> {
         warp::path("graphql").and(query.or(subscriptions).or(playground))
     };
 
-    warp::serve(
-        auth.or(graphql)
+    let svc = warp::service(
+        auth.or(status).or(graphql)
             .recover(problem::unpack)
             .with(cors)
             .with(log),
-    )
-    .run(args.host)
-    .await;
+    );
+
+
+    let make_svc = hyper::service::make_service_fn(|_: _| {
+        let svc = svc.clone();
+        async move { Ok::<_, Infallible>(svc) }
+    });
+
+
+    let mut listenfd = ListenFd::from_env();
+
+    let server = if let Some(l) = listenfd.take_tcp_listener(0).unwrap() {
+        Server::from_tcp(l)?
+    } else {
+        Server::bind(&args.host)
+    };
+
+    server.serve(make_svc).await?;
 
     Ok(())
 }
