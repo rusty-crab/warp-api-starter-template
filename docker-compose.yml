@@ -15,6 +15,9 @@ services:
       ARGON_SECRET: ITS ANOTHER SECRET
     ports:
       - 3535:3535
+    depends_on:
+      - db
+      - cache
     restart: always
   
   db:

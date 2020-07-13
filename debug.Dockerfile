@@ -12,5 +12,9 @@ RUN cargo install systemfd cargo-watch
 # clang, llvm required for argonautica dependency.
 RUN apt-get install -y clang llvm-dev libclang-dev
 
-ENTRYPOINT ["./scripts/run_dev.sh"]
+# install movine for database migrations
+RUN apt-get install -y libsqlite3-dev wait-for-it
+RUN cargo install movine
+
+ENTRYPOINT ["wait-for-it", "db:5432", "--", "./scripts/run_dev.sh"]
 
