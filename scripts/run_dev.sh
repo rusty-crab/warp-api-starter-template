@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # postgres is just starting up, may not accept connections right away
-sleep 1
+sleep 5
 # Run database migration fixes
+movine init
 movine status
 movine fix
 
