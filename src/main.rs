@@ -87,8 +87,11 @@ async fn main() -> anyhow::Result<()> {
             csrf: Option<String>,
         }
 
-        let auth = warp::header::optional("authorization")
-            .or(warp::cookie::optional("jwt"))
+        let auth = warp::header("authorization")
+            .or(warp::cookie("jwt"))
+            .unify()
+            .map(Some)
+            .or(warp::any().map(|| None))
             .unify()
             .and(warp::query())
             .and_then(|jwt: Option<String>, query: Query| async {
