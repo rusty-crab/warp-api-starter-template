@@ -1,5 +1,6 @@
 use crate::auth;
 use http_api_problem::HttpApiProblem as Problem;
+use std::convert::Infallible;
 use warp::http;
 use warp::{Rejection, Reply};
 
@@ -8,6 +9,7 @@ pub fn build<E: Into<anyhow::Error>>(err: E) -> Rejection {
 }
 
 pub fn pack(err: anyhow::Error) -> Problem {
+    tracing::info!("pack: {:#?}", err);
     let err = match err.downcast::<Problem>() {
         Ok(problem) => return problem,
 
@@ -32,7 +34,7 @@ pub fn pack(err: anyhow::Error) -> Problem {
                 return Problem::new("Invalid JWT token.")
                     .set_status(http::StatusCode::BAD_REQUEST)
                     .set_detail(format!("The passed JWT token were invalid. {}", e))
-            },
+            }
             _ => (),
         }
     }
@@ -41,22 +43,38 @@ pub fn pack(err: anyhow::Error) -> Problem {
     Problem::with_title_and_type_from_status(http::StatusCode::INTERNAL_SERVER_ERROR)
 }
 
-pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Rejection> {
-    if let Some(problem) = rejection.find::<Problem>() {
-        let code = problem
-            .status
-            .unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
+fn reply_from_problem(problem: &Problem) -> impl Reply {
+    let code = problem
+        .status
+        .unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
 
-        let reply = warp::reply::json(problem);
-        let reply = warp::reply::with_status(reply, code);
-        let reply = warp::reply::with_header(
-            reply,
-            http::header::CONTENT_TYPE,
-            http_api_problem::PROBLEM_JSON_MEDIA_TYPE,
-        );
+    let reply = warp::reply::json(problem);
+    let reply = warp::reply::with_status(reply, code);
+    let reply = warp::reply::with_header(
+        reply,
+        http::header::CONTENT_TYPE,
+        http_api_problem::PROBLEM_JSON_MEDIA_TYPE,
+    );
 
-        Ok(reply)
+    reply
+}
+
+pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Infallible> {
+    let reply = if rejection.is_not_found() {
+        let problem = Problem::with_title_and_type_from_status(http::StatusCode::NOT_FOUND);
+        reply_from_problem(&problem)
+    } else if let Some(problem) = rejection.find::<Problem>() {
+        reply_from_problem(problem)
+    } else if let Some(e) = rejection.find::<warp::filters::body::BodyDeserializeError>() {
+        let problem = Problem::new("Invalid Request Body.")
+            .set_status(http::StatusCode::BAD_REQUEST)
+            .set_detail(format!("Request body is invalid. {}", e));
+        reply_from_problem(&problem)
     } else {
-        Err(rejection)
-    }
+        let problem =
+            Problem::with_title_and_type_from_status(http::StatusCode::INTERNAL_SERVER_ERROR);
+        reply_from_problem(&problem)
+    };
+
+    Ok(reply)
 }
