@@ -9,10 +9,8 @@ pub fn build<E: Into<anyhow::Error>>(err: E) -> Rejection {
 }
 
 pub fn pack(err: anyhow::Error) -> Problem {
-    tracing::info!("pack: {:#?}", err);
     let err = match err.downcast::<Problem>() {
         Ok(problem) => return problem,
-
         Err(err) => err,
     };
 
@@ -23,7 +21,6 @@ pub fn pack(err: anyhow::Error) -> Problem {
                     .set_status(http::StatusCode::BAD_REQUEST)
                     .set_detail("The passed credentials were invalid.")
             }
-
             auth::AuthError::ArgonError => (),
         }
     }
@@ -62,6 +59,10 @@ fn reply_from_problem(problem: &Problem) -> impl Reply {
 pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Infallible> {
     let reply = if rejection.is_not_found() {
         let problem = Problem::with_title_and_type_from_status(http::StatusCode::NOT_FOUND);
+        reply_from_problem(&problem)
+    } else if let Some(_) = rejection.find::<warp::reject::MethodNotAllowed>() {
+        let problem =
+            Problem::with_title_and_type_from_status(http::StatusCode::METHOD_NOT_ALLOWED);
         reply_from_problem(&problem)
     } else if let Some(problem) = rejection.find::<Problem>() {
         reply_from_problem(problem)
