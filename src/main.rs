@@ -61,9 +61,13 @@ async fn main() -> anyhow::Result<()> {
         .allow_any_origin()
         .build();
     let log = warp::log("api::request");
-    let status = warp::get().and(warp::path("status")).map(|| format!("OK"));
+    let status = warp::get()
+        .and(warp::path("status"))
+        .and(warp::path::end())
+        .map(|| format!("OK"));
     let auth = warp::post()
         .and(warp::path("auth"))
+        .and(warp::path::end())
         .and(env.clone())
         .and(warp::body::json())
         .and(warp::addr::remote())
@@ -118,9 +122,11 @@ async fn main() -> anyhow::Result<()> {
 
         let query = warp::post()
             .and(warp::path("query"))
+            .and(warp::path::end())
             .and(make_graphql_filter(graphql::schema(), context.clone()));
 
         let subscriptions = warp::path("subscriptions")
+            .and(warp::path::end())
             .and(warp::ws())
             .and(context)
             .and(warp::any().map(move || Arc::clone(&coordinator)))
@@ -137,10 +143,12 @@ async fn main() -> anyhow::Result<()> {
             })
             .map(|reply| warp::reply::with_header(reply, "Sec-WebSocket-Protocol", "graphql-ws"));
 
-        let playground = warp::path("playground").and(playground_filter(
-            "/graphql/query",
-            Some("/graphql/subscriptions"),
-        ));
+        let playground = warp::path("playground")
+            .and(warp::path::end())
+            .and(playground_filter(
+                "/graphql/query",
+                Some("/graphql/subscriptions"),
+            ));
 
         warp::path("graphql").and(query.or(subscriptions).or(playground))
     };
