@@ -18,7 +18,7 @@ pub fn pack(err: anyhow::Error) -> Problem {
         match err {
             auth::AuthError::InvalidCredentials => {
                 return Problem::new("Invalid credentials.")
-                    .set_status(http::StatusCode::BAD_REQUEST)
+                    .set_status(http::StatusCode::UNAUTHORIZED)
                     .set_detail("The passed credentials were invalid.")
             }
             auth::AuthError::ArgonError => (),
@@ -60,16 +60,16 @@ pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Infallible> {
     let reply = if rejection.is_not_found() {
         let problem = Problem::with_title_and_type_from_status(http::StatusCode::NOT_FOUND);
         reply_from_problem(&problem)
-    } else if let Some(_) = rejection.find::<warp::reject::MethodNotAllowed>() {
-        let problem =
-            Problem::with_title_and_type_from_status(http::StatusCode::METHOD_NOT_ALLOWED);
-        reply_from_problem(&problem)
     } else if let Some(problem) = rejection.find::<Problem>() {
         reply_from_problem(problem)
     } else if let Some(e) = rejection.find::<warp::filters::body::BodyDeserializeError>() {
         let problem = Problem::new("Invalid Request Body.")
             .set_status(http::StatusCode::BAD_REQUEST)
             .set_detail(format!("Request body is invalid. {}", e));
+        reply_from_problem(&problem)
+    } else if let Some(_) = rejection.find::<warp::reject::MethodNotAllowed>() {
+        let problem =
+            Problem::with_title_and_type_from_status(http::StatusCode::METHOD_NOT_ALLOWED);
         reply_from_problem(&problem)
     } else {
         let problem =

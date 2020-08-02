@@ -61,12 +61,12 @@ async fn main() -> anyhow::Result<()> {
         .allow_any_origin()
         .build();
     let log = warp::log("api::request");
-    let status = warp::get()
-        .and(warp::path("status"))
+    let status = warp::path("status")
+        .and(warp::get())
         .and(warp::path::end())
         .map(|| format!("OK"));
-    let auth = warp::post()
-        .and(warp::path("auth"))
+    let auth = warp::path("auth")
+        .and(warp::post())
         .and(warp::path::end())
         .and(env.clone())
         .and(warp::body::json())
@@ -120,8 +120,8 @@ async fn main() -> anyhow::Result<()> {
 
         let coordinator = Arc::new(Coordinator::new(graphql::schema()));
 
-        let query = warp::post()
-            .and(warp::path("query"))
+        let query = warp::path("query")
+            .and(warp::post())
             .and(warp::path::end())
             .and(make_graphql_filter(graphql::schema(), context.clone()));
 
