@@ -26,13 +26,10 @@ pub fn pack(err: anyhow::Error) -> Problem {
     }
 
     if let Some(err) = err.downcast_ref::<biscuit::errors::Error>() {
-        match err {
-            biscuit::errors::Error::ValidationError(e) => {
-                return Problem::new("Invalid JWT token.")
-                    .set_status(http::StatusCode::BAD_REQUEST)
-                    .set_detail(format!("The passed JWT token were invalid. {}", e))
-            }
-            _ => (),
+        if let biscuit::errors::Error::ValidationError(e) = err {
+            return Problem::new("Invalid JWT token.")
+                .set_status(http::StatusCode::BAD_REQUEST)
+                .set_detail(format!("The passed JWT token were invalid. {}", e));
         }
     }
 
@@ -47,13 +44,11 @@ fn reply_from_problem(problem: &Problem) -> impl Reply {
 
     let reply = warp::reply::json(problem);
     let reply = warp::reply::with_status(reply, code);
-    let reply = warp::reply::with_header(
+    warp::reply::with_header(
         reply,
         http::header::CONTENT_TYPE,
         http_api_problem::PROBLEM_JSON_MEDIA_TYPE,
-    );
-
-    reply
+    )
 }
 
 pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Infallible> {
@@ -67,7 +62,7 @@ pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Infallible> {
             .set_status(http::StatusCode::BAD_REQUEST)
             .set_detail(format!("Request body is invalid. {}", e));
         reply_from_problem(&problem)
-    } else if let Some(_) = rejection.find::<warp::reject::MethodNotAllowed>() {
+    } else if rejection.find::<warp::reject::MethodNotAllowed>().is_some() {
         let problem =
             Problem::with_title_and_type_from_status(http::StatusCode::METHOD_NOT_ALLOWED);
         reply_from_problem(&problem)
