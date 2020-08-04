@@ -1,5 +1,5 @@
 # Stage 1 - build 
-FROM rust:1.44-slim as build-deps
+FROM rust:1.45.2-slim as build-deps
 
 LABEL maintainer="aslamplr@gmail.com"
 LABEL version=1.0

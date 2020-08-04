@@ -41,7 +41,7 @@ pub struct Args {
     #[clap(short, long, env)]
     session_lifetime: Option<i64>,
 
-    #[clap(default_value = "127.0.0.1:3535")]
+    #[clap(default_value = "127.0.0.1:3535", env)]
     host: SocketAddr,
 }
 

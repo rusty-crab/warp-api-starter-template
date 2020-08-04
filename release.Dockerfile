@@ -1,5 +1,5 @@
 # Stage 1 - build 
-FROM rust:1.44-slim as build-deps
+FROM rust:1.45.2-slim as build-deps
 
 WORKDIR /usr/src/web-app
 
@@ -10,6 +10,7 @@ RUN apt-get install -y clang llvm-dev libclang-dev
 COPY Cargo.* ./
 COPY src/ src/
 
+ARG DATABASE_URL
 RUN cargo install --path .
 
 # Stage 2 - deploy 
