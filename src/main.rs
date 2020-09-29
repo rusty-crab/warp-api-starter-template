@@ -25,9 +25,9 @@ pub struct Args {
     #[clap(short, long)]
     debug: bool,
 
-    #[clap(required = true, short = "D", long, env)]
+    #[clap(required = true, short = 'D', long, env)]
     database_url: String,
-    #[clap(required = true, short = "R", long, env)]
+    #[clap(required = true, short = 'R', long, env)]
     redis_url: String,
 
     #[clap(required = true, long, env)]
