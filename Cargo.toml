@@ -21,7 +21,7 @@ unicode-width = "0.1.8"
 rand = "0.7.3"
 futures = "0.3.5"
 tokio = { version = "0.2.21", features = ["full"] }
-warp = "0.2.3"
+warp = "0.2.5"
 http-api-problem = { version = "0.17.0", features = ["with-warp"] }
 biscuit = "0.5.0-beta1"
 argonautica = "0.2.0"
