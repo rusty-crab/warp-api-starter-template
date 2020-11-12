@@ -25,7 +25,7 @@ warp = "0.2.5"
 http-api-problem = { version = "0.17.0", features = ["with-warp"] }
 biscuit = "0.5.0-beta2"
 argonautica = "0.2.0"
-sqlx = { version = "0.3.5", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "uuid", "chrono", "json" ] }
+sqlx = { version = "0.4.1", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "uuid", "chrono", "json" ] }
 redis = { version = "0.17.0", default-features = false, features = [ "tokio-rt-core" ]}
 juniper = { git = "https://github.com/graphql-rust/juniper.git", rev = "4d77a1a9b9b0e60cbeb200527289bd45afec4141" }
 juniper_subscriptions = { git = "https://github.com/graphql-rust/juniper.git", rev = "4d77a1a9b9b0e60cbeb200527289bd45afec4141" }
