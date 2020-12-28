@@ -5,7 +5,7 @@ authors = ["Aslam Ahammed <aslamplr@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.34"
+anyhow = "1.0.37"
 thiserror = "1.0.20"
 clap = "3.0.0-beta.2"
 dotenv = "0.15.0"
