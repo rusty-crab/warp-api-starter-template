@@ -30,5 +30,5 @@ redis = { version = "0.17.0", default-features = false, features = [ "tokio-rt-c
 juniper = { git = "https://github.com/graphql-rust/juniper.git", rev = "4d77a1a9b9b0e60cbeb200527289bd45afec4141" }
 juniper_subscriptions = { git = "https://github.com/graphql-rust/juniper.git", rev = "4d77a1a9b9b0e60cbeb200527289bd45afec4141" }
 juniper_warp = { git = "https://github.com/graphql-rust/juniper.git", features = ["subscriptions"], rev = "4d77a1a9b9b0e60cbeb200527289bd45afec4141" }
-hyper = "0.13.6"
+hyper = "0.14.4"
 listenfd = "0.3.3"
